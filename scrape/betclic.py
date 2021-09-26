@@ -13,36 +13,31 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from scrape import OddsUnavailableError
+from scrape import OddsUnavailableError, BsOdds
 
 
 URL = "https://www.betclic.pl/tenis-s2"
 
 
-class Odds:
+class BetclicOdds(BsOdds):
     """betclic.pl's odds.
     """
     def __init__(self, bs_tag: Tag) -> None:
-        self._bs_tag = bs_tag
-        self.odds: float = self._get_odds()
-        self.contender: str = self._get_contender()
+        super().__init__(bs_tag)
 
-    def _get_contender(self) -> str:
+    def _get_contender(self) -> str:  # override
         tag = self._bs_tag.find(lambda tg: tg.name == "div" and "oddButtonWrapper" in tg.get(
             "class"))
         return tag.get("title")
 
-    def _get_odds(self) -> float:
+    def _get_odds(self) -> float:  # override
         tag = self._bs_tag.find(lambda tg: tg.name == "span" and "oddValue" in tg.get("class"))
         if "-" in tag.text or "Postaw" in tag.text:
             raise OddsUnavailableError("Odds unavailable at present.")
         return float(tag.text.replace(",", "."))
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(contender='{self.contender}', odds={self.odds})"
 
-
-def getodds() -> List[Odds]:
+def getodds() -> List[BetclicOdds]:
     """Return a list of all betclic.pl's tennis odds.
     """
     markup = requests.get(URL).text
@@ -52,10 +47,11 @@ def getodds() -> List[Odds]:
     odds = []
     for tag in button_tags:
         try:
-            o = Odds(tag)
+            o = BetclicOdds(tag)
         except OddsUnavailableError:
             continue
         odds.append(o)
+    print(f"Got total number of {len(odds)} Betclic odds.")
     return odds
 
 
