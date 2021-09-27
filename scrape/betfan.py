@@ -13,8 +13,7 @@ from time import sleep
 
 import requests
 
-from scrape import Json
-from scrape import Odds
+from scrape import Json, Odds, OddsPair
 
 
 class BetfanOdds(Odds):
@@ -41,7 +40,7 @@ def _get_cats() -> List[int]:
                 if "WTA" in item["categoryName"] and len(item["categoryName"]) > 3]
     atp_data = [item for item in tennisdata
                 if "ATP" in item["categoryName"] and len(item["categoryName"]) > 3]
-    print(f"Parsed {len(wta_data)} WTA and {len(atp_data)} ATP tournaments.")
+    print(f"Retrieved {len(wta_data)} WTA and {len(atp_data)} ATP tournaments for further parsing.")
     return [item["categoryId"] for item in [*wta_data, *atp_data]]
 
 
@@ -56,12 +55,12 @@ def _get_events(*cat_ids: int) -> List[Json]:
         print("Throttling for 700 ms..")
         sleep(0.7)
         print("Resumed.")
-    print(f"Parsed {len(events)} events.")
+    print(f"Retrieved {len(events)} event(s) for further parsing.")
     return events
 
 
-def _parse_event(event: Json) -> Tuple[BetfanOdds, BetfanOdds]:
-    """Parse an 'eventId' object in betfan.pl's input for odds.
+def _parse_event(event: Json) -> OddsPair:
+    """Parse an 'eventId' object in betfan.pl's input for odds rendered as an OddsPair object.
     """
     event_games = event["eventGames"]
     eg = next((item for item in event_games if "Zwycięzca" == item["gameName"]), None)
@@ -73,16 +72,16 @@ def _parse_event(event: Json) -> Tuple[BetfanOdds, BetfanOdds]:
     if len(odds) != 2:
         raise ValueError(f"Invalid input: {event}")
     home, away = odds
-    return home, away
+    return OddsPair(home, away)
 
 
-def getodds() -> List[BetfanOdds]:
-    """Return a list of all betfan.pl's WTA and ATP odds.
+def getpairs() -> List[OddsPair]:
+    """Return a list of all betfan.pl's WTA and ATP odds pairs.
     """
     cats = _get_cats()
     events = _get_events(*cats)
-    oddspairs = [_parse_event(e) for e in events]
-    odds = [el for pair in oddspairs for el in pair]
-    print(f"Got total number of {len(odds)} BETFAN odds.")
-    return odds
+    pairs = [_parse_event(e) for e in events]
+    print(f"Got {len(pairs)} BETFAN odds pairs.")
+    return pairs
+
 

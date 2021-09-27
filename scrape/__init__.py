@@ -9,7 +9,7 @@
 """
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from bs4.element import Tag
 
@@ -67,6 +67,18 @@ class OddsPair:
     home: Odds
     away: Odds
 
+    @property
+    def margin(self) -> float:
+        return 1 / self.home.odds + 1 / self.away.odds - 1
+
+    @property
+    def marginstr(self) -> str:
+        return f"{self.margin * 100:.2f} %"
+
+    @property
+    def as_tuple(self) -> Tuple[Odds, Odds]:
+        return self.home, self.away
+
 
 def filter_pair(odds_list: List[Odds], home: str, away: str) -> Optional[OddsPair]:
     """Filter pair of odds from 'odds_list' based on 'home' and 'away'.
@@ -80,4 +92,12 @@ def filter_pair(odds_list: List[Odds], home: str, away: str) -> Optional[OddsPai
     if not away_odds:
         return None
     return OddsPair(home_odds, away_odds)
+
+
+def pairs_to_odds(odds_pairs: List[OddsPair]) -> List[Odds]:
+    """Return a flat list of all odds from odds_pairs.
+    """
+    odds = [o for pair in odds_pairs for o in pair.as_tuple]
+    print(f"Converted {len(odds_pairs)} odds pair(s) to odds.")
+    return odds
 
