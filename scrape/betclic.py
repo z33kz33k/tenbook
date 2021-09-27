@@ -18,18 +18,12 @@ from scrape import Json, Odds, OddsPair
 
 
 class BetclicOdds(Odds):
-    """betclic.pl's specific implementation of Odds interface.
+    """betclic.pl's odds.
     """
+    PROVIDER = "Betclic"
+
     def __init__(self, contender: str, odds: float) -> None:
-        self._contender = contender
-        self._odds = odds
-        super().__init__()
-
-    def _get_odds(self) -> float:
-        return self._odds
-
-    def _get_contender(self) -> str:
-        return self._contender
+        super().__init__(contender, odds)
 
 
 def _get_events() -> List[Json]:
@@ -59,6 +53,6 @@ def getpairs() -> List[OddsPair]:
     """Return a list of all betclic.pl's WTA and ATP odds pairs.
     """
     pairs = [_parse_event(e) for e in _get_events()]
-    print(f"Got {len(pairs)} Betclic odds pairs.")
+    print(f"Got {len(pairs)} {BetclicOdds.PROVIDER} odds pairs.")
     return pairs
 

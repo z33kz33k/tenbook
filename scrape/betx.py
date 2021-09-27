@@ -33,18 +33,12 @@ def _get_postdata() -> Json:
 
 
 class BetxOdds(Odds):
-    """ebetx.pl's specific implementation of Odds interface.
+    """ebetx.pl's odds.
     """
+    PROVIDER = "BetX"
+
     def __init__(self, contender: str, odds: float) -> None:
-        self._contender = contender
-        self._odds = odds
-        super().__init__()
-
-    def _get_odds(self) -> float:
-        return self._odds
-
-    def _get_contender(self) -> str:
-        return self._contender
+        super().__init__(contender, odds)
 
 
 def _get_matches() -> List[Json]:
@@ -68,5 +62,5 @@ def getpairs() -> List[OddsPair]:
     """Return a list of all ebetx.pl's WTA and ATP odds pairs.
     """
     pairs = [_parse_match(m) for m in _get_matches()]
-    print(f"Got {len(pairs)} BetX odds pairs.")
+    print(f"Got {len(pairs)} {BetxOdds.PROVIDER} odds pairs.")
     return pairs
