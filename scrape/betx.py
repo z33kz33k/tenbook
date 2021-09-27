@@ -6,6 +6,9 @@
 
     @author: z33k
 
+    NOTE: this scrapes all WTA + ATP matches, but there's no guarantee Grand Slams are included in
+    this data.
+
 """
 from datetime import datetime
 from typing import List
@@ -50,7 +53,8 @@ def _get_matches() -> List[Json]:
     data = r.json()["Response"][0]
     tournaments = [t for item in data["Categories"] for t in item["Leagues"]]
     matches = [item for t in tournaments for item in t["Matches"]]
-    print(f"Retrieved {len(matches)} matche(s) for further parsing.")
+    print(f"Retrieved {len(matches)} match(es) for further parsing.")
+    return matches
 
 
 def _parse_match(match: Json) -> OddsPair:
