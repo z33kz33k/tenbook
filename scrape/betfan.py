@@ -14,6 +14,9 @@ from typing import List
 
 from scrape import Odds, OddsPair, CategorizedEventsParser
 
+CATURL = "https://betfan.pl/rest/market/categories"
+EVENT_URL_TEMPLATE = "https://betfan.pl/rest/market/categories/multi/{}/events"
+
 
 class BetfanOdds(Odds):
     """betfan.pl's odds.
@@ -27,9 +30,5 @@ class BetfanOdds(Odds):
 def getpairs() -> List[OddsPair]:
     """Return a list of all betfan.pl's WTA and ATP odds pairs.
     """
-    caturl = "https://betfan.pl/rest/market/categories"
-    event_url_template = "https://betfan.pl/rest/market/categories/multi/{}/events"
-    parser = CategorizedEventsParser(caturl, event_url_template, BetfanOdds)
+    parser = CategorizedEventsParser(CATURL, EVENT_URL_TEMPLATE, BetfanOdds)
     return parser.getpairs()
-
-

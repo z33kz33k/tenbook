@@ -11,12 +11,17 @@ import json
 from abc import ABCMeta
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from bs4.element import Tag
 import requests
 
 Json = Dict[str, Any]
+
+
+def percent(fraction: float, precision: int = 2) -> str:
+    """Return fraction rendered as a percent string.
+    """
+    return f"{fraction * 100:.{precision}f} %"
 
 
 class Odds(metaclass=ABCMeta):
@@ -33,6 +38,25 @@ class Odds(metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(contender='{self.contender}', odds={self.odds})"
 
+    def __eq__(self, other: "Odds") -> Union[bool, "NotImplemented"]:
+        """Overload '==' operator.
+
+        NOTE: this solution was based on:
+        https://stackoverflow.com/questions/390250/elegant-ways-to-support-equivalence-equality-in-python-classes)
+        """
+        if isinstance(self, other.__class__):
+            return self.contender == other.contender and self.odds == self.odds
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        """Make this object hashable
+        """
+        return hash(tuple(sorted(self.__dict__.items())))
+
+    @property
+    def as_percent(self) -> float:
+        return 1 / self.odds
+
 
 @dataclass
 class OddsPair:
@@ -42,16 +66,24 @@ class OddsPair:
     away: Odds
 
     @property
+    def as_tuple(self) -> Tuple[Odds, Odds]:
+        return self.home, self.away
+
+    @property
     def margin(self) -> float:
-        return 1 / self.home.odds + 1 / self.away.odds - 1
+        return self.home.as_percent + self.away.as_percent - 1
 
     @property
     def marginstr(self) -> str:
-        return f"{self.margin * 100:.2f} %"
+        return percent(self.margin)
 
     @property
-    def as_tuple(self) -> Tuple[Odds, Odds]:
-        return self.home, self.away
+    def spread(self) -> float:
+        return abs(self.home.as_percent - self.away.as_percent)
+
+    @property
+    def spreadstr(self) -> str:
+        return percent(self.spread)
 
 
 def filter_pair(odds_list: List[Odds], home: str, away: str) -> Optional[OddsPair]:
@@ -116,8 +148,8 @@ class CategorizedEventsParser:
             r = requests.get(self.event_url_template.format(id_)).text
             data = json.loads(r)["data"]
             events.extend(data)
-            print("Throttling for 700 ms..")
-            sleep(0.7)
+            print(f"Throttling for {int(self.throttling_period * 1000)} ms..")
+            sleep(self.throttling_period)
             print("Resumed.")
         print(f"Retrieved {len(events)} event(s) for further parsing.")
         return events
@@ -145,3 +177,6 @@ class CategorizedEventsParser:
         pairs = [self._parse_event(e) for e in events]
         print(f"Got {len(pairs)} {self.odds_type.PROVIDER} odds pairs.")
         return pairs
+
+
+# TODO: prune doubles data from: betclic, betx, betfan, etoto, ewinner and forbet

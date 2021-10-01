@@ -14,6 +14,9 @@ from typing import List
 
 from scrape import Odds, OddsPair, CategorizedEventsParser
 
+CATURL = "https://api.etoto.pl/rest/market/categories"
+EVENT_URL_TEMPLATE = "https://api.etoto.pl/rest/market/categories/multi/{}/events"
+
 
 class EtotoOdds(Odds):
     """www.etoto.pl's odds.
@@ -27,9 +30,7 @@ class EtotoOdds(Odds):
 def getpairs() -> List[OddsPair]:
     """Return a list of all betfan.pl's WTA and ATP odds pairs.
     """
-    caturl = "https://api.etoto.pl/rest/market/categories"
-    event_url_template = "https://api.etoto.pl/rest/market/categories/multi/{}/events"
-    parser = CategorizedEventsParser(caturl, event_url_template, EtotoOdds)
+    parser = CategorizedEventsParser(CATURL, EVENT_URL_TEMPLATE, EtotoOdds)
     return parser.getpairs()
 
 

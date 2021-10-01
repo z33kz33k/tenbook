@@ -21,8 +21,20 @@ from pprint import pprint
 # print("============")
 # pprint(betfan_odds)
 
-from scrape import pairs_to_odds
-from scrape.betclic import getpairs
-odds = pairs_to_odds(getpairs())
-pprint(odds)
+# from scrape.forbet import getpairs
+# pairs = getpairs()
+# print(len(pairs))
+
+from pprint import pprint
+from scrape import betclic, betx, betfan, etoto, ewinner, forbet
+
+pairs = [
+    # *betclic.getpairs(),
+    *betx.getpairs(),
+    # *betfan.getpairs(),
+    # *etoto.getpairs(),
+    # *ewinner.getpairs(),
+    # *forbet.getpairs(),
+]
+pprint(sorted(pairs, key=lambda p: p.spread))
 
