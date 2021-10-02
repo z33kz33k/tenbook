@@ -54,8 +54,13 @@ def _get_event_divs() -> List[Tag]:
     def validate_soup(bs: BeautifulSoup) -> bool:
         # search in soup for element displaying e.g: TENIS >> WTA >> WTA CHICAGO
         divs = bs.find_all("div", class_="left outcomes-menu uppercase tl")
+        if len(divs) < 2:
+            return False
         ass = divs[1].find_all("a")
-        tag = [*ass][2]
+        children = [*ass]
+        if len(children) < 3:
+            return False
+        tag = children[2]
         # if it does not contain illegal words, it's OK
         if not any(word in tag.text for word in ("ITF", "Challenger", "Klasyfikacja")):
             return True
@@ -80,18 +85,20 @@ class ForbetOdds(Odds):
     """
     PROVIDER = "ForBET"
 
-    def __init__(self, contender: str, odds: float, eventname: str) -> None:
+    def __init__(self, contender: str, odds: float, event: str) -> None:
         super().__init__(contender, odds)
-        self.eventname = eventname
+        self.event = event
 
 
 def getodds() -> List[ForbetOdds]:
     odds_list = []
     for tag in _get_event_divs():
         contender = tag.attrs["data-outcomename"]
+        if "/" in contender:
+            continue  # prune doubles
         odds = tag.attrs["data-outcomeodds"]
-        eventname = tag.attrs["data-eventname"]
-        odds_list.append(ForbetOdds(contender, float(odds), eventname))
+        event = tag.attrs["data-eventname"]
+        odds_list.append(ForbetOdds(contender, float(odds), event))
     print(f"Got total number of {len(odds_list)} {ForbetOdds.PROVIDER} odds.")
     return odds_list
 
@@ -99,12 +106,12 @@ def getodds() -> List[ForbetOdds]:
 def getpairs() -> List[OddsPair]:
     pairs, odds_list = [], getodds()
     for o in odds_list[:]:
-        complement = next((odds for odds in odds_list if o.contender in odds.eventname
+        complement = next((odds for odds in odds_list if o.contender in odds.event
                            and o.contender != odds.contender), None)
         if not complement:
             continue
         else:
-            pairs.append(OddsPair(o, complement))
+            pairs.append(OddsPair(o, complement, o.event))
             odds_list.remove(o)
     print(f"Got {len(pairs)} {ForbetOdds.PROVIDER} odds pairs.")
     return pairs

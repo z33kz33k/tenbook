@@ -55,17 +55,19 @@ def _get_matches() -> List[Json]:
 
 def _parse_match(match: Json) -> Optional[OddsPair]:
     home_contender, away_contender = match["TeamHome"], match["TeamAway"]
+    event = match["LeagueName"]
     if any("/" in n for n in (home_contender, away_contender)):
         return None  # prune doubles
     home_odds, away_odds = match["BasicOffer"]["Odds"]
     return OddsPair(BetxOdds(home_contender, home_odds["Odd"]),
-                    BetxOdds(away_contender, away_odds["Odd"]))
+                    BetxOdds(away_contender, away_odds["Odd"]),
+                    event)
 
 
 def getpairs() -> List[OddsPair]:
     """Return a list of all ebetx.pl's WTA and ATP odds pairs.
     """
     pairs = [_parse_match(m) for m in _get_matches()]
-    pairs = [p for p in pairs if p]  # prune doubles
+    pairs = [p for p in pairs if p]  # prune None
     print(f"Got {len(pairs)} {BetxOdds.PROVIDER} odds pairs.")
     return pairs

@@ -43,23 +43,25 @@ def _get_events() -> List[Json]:
 def _parse_event(event: Json) -> Optional[OddsPair]:
     """Parse an event object in betclic.pl's input for odds rendered as an OddsPair object.
     """
+    eventname = event["competition"]["name"]
     market = next((m for m in event["markets"] if m["name"] == "Zwycięzca meczu"), None)
     if not market:
-        raise ValueError(f"Invalid input: {event}.")
+        return None
     home, away = market["selections"]
 
     if any("/" in n for n in (home["name"], away["name"])):
         return None  # prune doubles
 
     return OddsPair(BetclicOdds(home["name"], home["odds"]),
-                    BetclicOdds(away["name"], away["odds"]))
+                    BetclicOdds(away["name"], away["odds"]),
+                    eventname)
 
 
 def getpairs() -> List[OddsPair]:
     """Return a list of all betclic.pl's WTA and ATP odds pairs.
     """
     pairs = [_parse_event(e) for e in _get_events()]
-    pairs = [p for p in pairs if p]  # prune None's
+    pairs = [p for p in pairs if p]  # prune None
     print(f"Got {len(pairs)} {BetclicOdds.PROVIDER} odds pairs.")
     return pairs
 

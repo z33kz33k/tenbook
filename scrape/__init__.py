@@ -11,7 +11,7 @@ import json
 from abc import ABCMeta
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 
 import requests
 
@@ -21,7 +21,7 @@ Json = Dict[str, Any]
 def percent(fraction: float, precision: int = 2) -> str:
     """Return fraction rendered as a percent string.
     """
-    return f"{fraction * 100:.{precision}f} %"
+    return f"{fraction * 100:.{precision}f}%"
 
 
 class Odds(metaclass=ABCMeta):
@@ -32,11 +32,21 @@ class Odds(metaclass=ABCMeta):
     def __init__(self, contender: str, odds: float) -> None:
         if type(self) is Odds:
             raise TypeError(f"Abstract class {self.__class__.__name__} must not be instantiated.")
-        self.contender = contender
+        self.contender = self._normalize(contender)
         self.odds = odds
 
+    @staticmethod
+    def _normalize(contender) -> str:
+        if "," in contender:
+            lastname, firstname = contender.split(",")
+            return f"{firstname.strip()} {lastname.strip()}"
+        return contender
+
+    def __str__(self) -> str:
+        return f"({self.contender}, {self.odds:.2f})"
+
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(contender='{self.contender}', odds={self.odds})"
+        return f"{self.__class__.__name__}(contender='{self.contender}', odds={self.odds:.2f})"
 
     def __eq__(self, other: "Odds") -> Union[bool, "NotImplemented"]:
         """Overload '==' operator.
@@ -64,6 +74,14 @@ class OddsPair:
     """
     home: Odds
     away: Odds
+    event: str = ""
+
+    def __repr__(self) -> str:
+        repr_ = f"{self.__class__.__name__}([{self.home}, {self.away}], "
+        repr_ += f"event='{self.event}', " if self.event else ""
+        repr_ += f"provider={self.home.PROVIDER}, spread={self.spread:.2f}, " \
+                 f"margin={self.marginstr})"
+        return repr_
 
     @property
     def as_tuple(self) -> Tuple[Odds, Odds]:
@@ -79,11 +97,20 @@ class OddsPair:
 
     @property
     def spread(self) -> float:
-        return abs(self.home.as_percent - self.away.as_percent)
+        return abs(self.home.odds - self.away.odds)
 
     @property
-    def spreadstr(self) -> str:
-        return percent(self.spread)
+    def contenders(self) -> Tuple[str, str]:
+        return self.home.contender, self.away.contender
+
+    @property
+    def nameparts(self) -> Generator[str, None, None]:
+        """Return parts of contenders' names.
+
+        E.g. for ("Paula Badosa Gibert", "Iga Świątek") it would be:
+        ["Paula", "Badosa", "Gibert", "Iga", "Świątek"]
+        """
+        return (part for contender in self.contenders for part in contender.split())
 
 
 def filter_pair(odds_list: List[Odds], home: str, away: str) -> Optional[OddsPair]:
@@ -154,20 +181,23 @@ class CategorizedEventsParser:
         print(f"Retrieved {len(events)} event(s) for further parsing.")
         return events
 
-    def _parse_event(self, event: Json) -> OddsPair:
+    def _parse_event(self, event: Json) -> Optional[OddsPair]:
         """Parse an 'eventId' object in betfan.pl's input for odds rendered as an OddsPair object.
         """
         event_games = event["eventGames"]
         eg = next((item for item in event_games if "Zwycięzca" == item["gameName"]), None)
         if eg is None:
-            raise ValueError(f"Invalid input: {event}")
+            return None
         odds = []
         for outcome in eg["outcomes"]:
+            if "/" in outcome["outcomeName"]:
+                return None  # prune doubles
+            event = outcome["category3Name"]
             odds.append(self.odds_type(outcome["outcomeName"], outcome["outcomeOdds"]))
         if len(odds) != 2:
-            raise ValueError(f"Invalid input: {event}")
+            return None
         home, away = odds
-        return OddsPair(home, away)
+        return OddsPair(home, away, event)
 
     def getpairs(self) -> List[OddsPair]:
         """Return a list of all betfan.pl's WTA and ATP odds pairs.
@@ -175,8 +205,6 @@ class CategorizedEventsParser:
         cats = self._get_cats()
         events = self._get_events(*cats)
         pairs = [self._parse_event(e) for e in events]
+        pairs = [p for p in pairs if p]  # prune None
         print(f"Got {len(pairs)} {self.odds_type.PROVIDER} odds pairs.")
         return pairs
-
-
-# TODO: prune doubles data from: betclic, betx, betfan, etoto, ewinner and forbet
