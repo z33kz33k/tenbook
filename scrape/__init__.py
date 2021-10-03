@@ -16,6 +16,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 import requests
 
 Json = Dict[str, Any]
+THROTTLING_PERIOD = 0.5  # seconds
 
 
 def percent(fraction: float, precision: int = 2) -> str:
@@ -79,7 +80,7 @@ class OddsPair:
     def __repr__(self) -> str:
         repr_ = f"{self.__class__.__name__}([{self.home}, {self.away}], "
         repr_ += f"event='{self.event}', " if self.event else ""
-        repr_ += f"provider={self.home.PROVIDER}, spread={self.spread:.2f}, " \
+        repr_ += f"provider='{self.home.PROVIDER}', spread={self.spread:.2f}, " \
                  f"margin={self.marginstr})"
         return repr_
 
@@ -146,7 +147,7 @@ class CategorizedEventsParser:
     * etoto.pl
     """
     def __init__(self, caturl: str, event_url_template: str, odds_type: Type[Odds],
-                 throttling_period: float = 0.7) -> None:
+                 throttling_period: float = THROTTLING_PERIOD) -> None:
         self.caturl = caturl
         self.event_url_template = event_url_template
         self.odds_type = odds_type
@@ -185,6 +186,7 @@ class CategorizedEventsParser:
         """Parse an 'eventId' object in betfan.pl's input for odds rendered as an OddsPair object.
         """
         event_games = event["eventGames"]
+        eventname = event["category3Name"]
         eg = next((item for item in event_games if "Zwycięzca" == item["gameName"]), None)
         if eg is None:
             return None
@@ -192,12 +194,11 @@ class CategorizedEventsParser:
         for outcome in eg["outcomes"]:
             if "/" in outcome["outcomeName"]:
                 return None  # prune doubles
-            event = outcome["category3Name"]
             odds.append(self.odds_type(outcome["outcomeName"], outcome["outcomeOdds"]))
         if len(odds) != 2:
             return None
         home, away = odds
-        return OddsPair(home, away, event)
+        return OddsPair(home, away, eventname)
 
     def getpairs(self) -> List[OddsPair]:
         """Return a list of all betfan.pl's WTA and ATP odds pairs.

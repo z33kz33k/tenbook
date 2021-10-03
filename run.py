@@ -26,15 +26,21 @@ from pprint import pprint
 # print(len(pairs))
 
 from pprint import pprint
-from scrape import betclic, betx, betfan, etoto, ewinner, forbet
+from scrape import betclic, betx, betfan, etoto, ewinner, forbet, fortuna, fuksiarz, lv_bet
 
 pairs = [
-    *betclic.getpairs(),
+    # *betclic.getpairs(),
     # *betx.getpairs(),
     # *betfan.getpairs(),
     # *etoto.getpairs(),
     # *ewinner.getpairs(),
     # *forbet.getpairs(),
+    # *fortuna.getpairs(),
+    # *fuksiarz.getpairs(),
+    *lv_bet.getpairs(),
 ]
-pprint(sorted([p for p in pairs if "Ruud" in p.nameparts], key=lambda p: p.spread))
+# pprint(sorted([p for p in pairs if "Jabeur" in p.nameparts], key=lambda p: p.spread))
+pprint(sorted(pairs, key=lambda p: p.spread))
+
+
 
