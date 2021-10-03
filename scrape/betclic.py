@@ -12,9 +12,8 @@
 """
 from typing import List, Optional
 
-import requests
-
-from scrape import Json, Odds, OddsPair
+from scrape import Odds, OddsPair
+from utils import Json, timed_request
 
 URL = "https://offer.cdn.begmedia.com/api/pub/v4/events?application=2048&countrycode=pl" \
   "&fetchMultipleDefaultMarkets=true&language=pa&limit=400&offset=0&sitecode=plpa&sortBy" \
@@ -31,7 +30,7 @@ class BetclicOdds(Odds):
 
 
 def _get_events() -> List[Json]:
-    data = requests.get(URL).json()
+    data = timed_request(URL, provider=BetclicOdds.PROVIDER, return_json=True)
     # filter out 'live' events
     data = [e for e in data if not e['isLive']]
     to_exclude = ("Challenger", "ITF", "Exhibition")

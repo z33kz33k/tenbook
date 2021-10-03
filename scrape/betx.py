@@ -13,9 +13,8 @@
 from datetime import datetime
 from typing import List, Optional
 
-import requests
-
-from scrape import Json, Odds, OddsPair
+from scrape import Odds, OddsPair
+from utils import Json, timed_request
 
 URL = "https://sportapis.ebetx.pl/SportOfferApi/api/sport/offer/v2/sports/offer"
 
@@ -44,8 +43,7 @@ class BetxOdds(Odds):
 
 
 def _get_matches() -> List[Json]:
-    r = requests.post(URL, json=_get_postdata())
-    data = r.json()["Response"][0]
+    data = timed_request(URL, postdata=_get_postdata(), return_json=True)["Response"][0]
     tournaments = [t for item in data["Categories"] for t in item["Leagues"]]
     tournaments = [t for t in tournaments if all(w not in t["Name"] for w in ("ITF", "Challenger"))]
     matches = [item for t in tournaments for item in t["Matches"]]

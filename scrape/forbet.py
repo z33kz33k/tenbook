@@ -13,11 +13,12 @@
 from time import sleep
 from typing import Generator, List
 
-import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
 from scrape import Odds, OddsPair
+
+from utils import timed_request
 
 # the usual approach of looking at what gets requested by the page failed here
 # not only because the data needed is not within jsons returned (oddly, it lurks in one of returned
@@ -31,16 +32,42 @@ MAINURL = "https://www.iforbet.pl/zaklady-bukmacherskie"
 THROTTLING_PERIOD = 0.7
 
 
+# ceased to work
+# def _get_cat_ids() -> List[int]:
+#     # markup = requests.get(MAINURL).text
+#     markup = timed_request(MAINURL, provider=ForbetOdds.PROVIDER)
+#     soup = BeautifulSoup(markup, "lxml")
+#     div = soup.find("div", class_="image banner-image", title="Tenis")
+#     # e.g: 'redirectPage(\'oferta/8/55606,55617,41413,41418,55607,55604,55626,55615\',\'_self\')'
+#     text = div.attrs["onclick"]
+#     _, second = text.split("oferta/8/")
+#     first, _ = second.split(r"',")
+#     catids = [int(p) for p in first.split(",")]
+#     print(f"Parsed {len(catids)} category(ies).")
+#     return catids
+
+
 def _get_cat_ids() -> List[int]:
-    markup = requests.get(MAINURL).text
+    markup = timed_request(MAINURL, provider=ForbetOdds.PROVIDER)
     soup = BeautifulSoup(markup, "lxml")
-    div = soup.find("div", class_="image banner-image", title="Tenis")
-    # e.g: 'redirectPage(\'oferta/8/55606,55617,41413,41418,55607,55604,55626,55615\',\'_self\')'
-    text = div.attrs["onclick"]
-    _, second = text.split("oferta/8/")
-    first, _ = second.split(r"',")
-    catids = [int(p) for p in first.split(",")]
-    print(f"Parsed {len(catids)} category(ies).")
+    cat5div = soup.select("div#cat-5")[0]
+
+    cat2divs = cat5div.find_all("div", class_="cat2 hide")
+    new_cat2divs = []
+    for c in cat2divs:
+        tdiv = c.find("div", class_="title")
+        span = tdiv.find("span")
+        if any(w in span.text for w in ("ATP", "WTA")):
+            new_cat2divs.append(c)
+
+    catids = []
+    for c in new_cat2divs:
+        cat3divs = c.find_all("div", class_="cat3 hide")
+        for div in cat3divs:
+            id_ = div.attrs["id"]
+            result = id_.split("-")[-1]
+            catids.append(int(result))
+
     return catids
 
 
@@ -68,12 +95,12 @@ def _get_event_divs() -> List[Tag]:
 
     tags = []
     for url in urlgen():
-        markup = requests.get(url).text
+        markup = timed_request(url, provider=ForbetOdds.PROVIDER)
         soup = BeautifulSoup(markup, "lxml")
         if validate_soup(soup):
             tags += [tag for tag in soup.find_all("div", class_="event-rate")
                      if tag.attrs["data-gamename"] == "Zwycięzca"]
-        print(F"Throttling for {int(THROTTLING_PERIOD * 1000)} ms..")
+        print(f"Throttling for {int(THROTTLING_PERIOD * 1000)} ms..")
         sleep(THROTTLING_PERIOD)
         print("Resumed.")
 

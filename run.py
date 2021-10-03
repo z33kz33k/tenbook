@@ -35,9 +35,9 @@ pairs = [
     # *etoto.getpairs(),
     # *ewinner.getpairs(),
     # *forbet.getpairs(),
-    # *fortuna.getpairs(),
+    *fortuna.getpairs(),
     # *fuksiarz.getpairs(),
-    *lv_bet.getpairs(),
+    # *lv_bet.getpairs(),
 ]
 # pprint(sorted([p for p in pairs if "Jabeur" in p.nameparts], key=lambda p: p.spread))
 pprint(sorted(pairs, key=lambda p: p.spread))

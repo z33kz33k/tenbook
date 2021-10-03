@@ -12,20 +12,14 @@
 """
 from typing import Dict, List, Optional
 
-import requests
-from contexttimer import Timer
-
-from scrape import Json, Odds, OddsPair
+from scrape import Odds, OddsPair
+from utils import Json, timed_request
 
 URL = "https://app.lvbet.pl/_api/v1/offer/matches/?is_live=false&lang=pl"
 
 
 def _get_matches() -> List[Json]:
-    print(f"Retrieving data from LV BET servers...")
-    with Timer() as t:
-        data = requests.get(URL).json()
-    print(f"Request completed in {t.elapsed:.3f} seconds.")
-
+    data = timed_request(URL, provider=LvBetOdds.PROVIDER, return_json=True)
     matches = [d for d in data if d["group"]["label"] == "tennis"]
     print(f"Parsed {len(matches)} match(es).")
     return matches

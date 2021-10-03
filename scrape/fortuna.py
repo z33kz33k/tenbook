@@ -12,12 +12,12 @@
 """
 from typing import List, Tuple
 
-import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 import pandas as pd
 
 from scrape import Odds, OddsPair
+from utils import timed_request
 
 URL = "https://www.efortuna.pl/zaklady-bukmacherskie/tenis-mpl283"
 
@@ -27,7 +27,7 @@ def _get_tables() -> List[Tuple[Tag, str]]:
         return any(w in text for w in ("WTA", "ATP")) and all(w not in text
                                                               for w in ("ITF", "Chall", "debel",
                                                                         "końc."))
-    markup = requests.get(URL).text
+    markup = timed_request(URL, provider=FortunaOdds.PROVIDER)
     soup = BeautifulSoup(markup, "lxml")
     sections = soup.select("section.competition-box")
     pruned = [s for s in sections if s.find("span", class_="competition-name", text=prune)]

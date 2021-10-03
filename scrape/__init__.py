@@ -11,11 +11,10 @@ import json
 from abc import ABCMeta
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
+from typing import Generator, List, Optional, Tuple, Type, Union
 
-import requests
+from utils import Json, timed_request
 
-Json = Dict[str, Any]
 THROTTLING_PERIOD = 0.5  # seconds
 
 
@@ -154,8 +153,8 @@ class CategorizedEventsParser:
         self.throttling_period = throttling_period
 
     def _get_cats(self) -> List[int]:
-        r = requests.get(self.caturl).text
-        data = json.loads(r)["data"]
+        data = timed_request(self.caturl, provider=self.odds_type.PROVIDER, return_json=True)
+        data = data["data"]
         # filtering
         tennisdata = [item for item in data if "Tenis" in item["sportName"]]
         to_exlude = ("sezonowe", "turniej", "ITF", "Challenger")
@@ -173,8 +172,9 @@ class CategorizedEventsParser:
         print(f"Retrieving events for {len(cat_ids)} tournaments(s).")
         events = []
         for id_ in cat_ids:
-            r = requests.get(self.event_url_template.format(id_)).text
-            data = json.loads(r)["data"]
+            data = timed_request(self.event_url_template.format(id_),
+                                 provider=self.odds_type.PROVIDER,
+                                 return_json=True)["data"]
             events.extend(data)
             print(f"Throttling for {int(self.throttling_period * 1000)} ms..")
             sleep(self.throttling_period)
